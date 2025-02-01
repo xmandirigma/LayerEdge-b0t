@@ -10,7 +10,7 @@ Layer Edge BOT
   - Auto Run With [Monosans](https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt) Proxy - Choose 1
   - Auto Run With Private Proxy - Choose 2
   - Auto Run Without Proxy - Choose 3
-  - Auto Register Node If Don't Have
+  - Auto Claim Daily Check-In
   - Auto Connect and Reconnect Node
   - Multi Accounts
 
