@@ -175,8 +175,12 @@ class LayerEdge:
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
-                async with ClientSession(connector=connector, timeout=ClientTimeout(total=120)) as session:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
                     async with session.get(url=url, headers=self.headers) as response:
+                        if response.status == 404:
+                            await self.user_confirm(address, proxy)
+                            continue
+
                         response.raise_for_status()
                         result = await response.json()
                         return result['data']
@@ -186,6 +190,28 @@ class LayerEdge:
                     continue
                 
                 return self.print_message(self.mask_account(address), proxy, Fore.RED, f"GET User Data Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
+    
+    async def user_confirm(self, address: str, proxy=None, retries=5):
+        url = "https://referralapi.layeredge.io/api/referral/register-wallet/tHc67a1g"
+        data = json.dumps({"walletAddress":address})
+        headers = {
+            **self.headers,
+            "Content-Length": str(len(data)),
+            "Content-Type": "application/json"
+        }
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                
+                return self.print_message(address, proxy, Fore.RED, f"Try Confirm Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
             
     async def node_status(self, address: str, proxy=None, retries=5):
         url = f"https://referralapi.layeredge.io/api/light-node/node-status/{address}"
