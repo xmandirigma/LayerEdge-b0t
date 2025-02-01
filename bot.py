@@ -116,8 +116,23 @@ class LayerEdge:
             return address
         except Exception as e:
             return None
+        
+    def generate_checkin_payload(self, account: str, address: str):
+        timestamp = int(time.time() * 1000)
+        try:
+            message = f"I am claiming my daily node point for {address} at {timestamp}"
+            encoded_message = encode_defunct(text=message)
+
+            signed_message = Account.sign_message(encoded_message, private_key=account)
+            signature = signed_message.signature.hex()
+
+            data = {"sign":f"0x{signature}", "timestamp":timestamp, "walletAddress":address}
+            
+            return data
+        except Exception as e:
+            return None
     
-    def generate_payload(self, account: str, address: str, msg_type: str):
+    def generate_node_payload(self, account: str, address: str, msg_type: str):
         timestamp = int(time.time() * 1000)
         try:
             message = f"Node {msg_type} request for {address} at {timestamp}"
@@ -213,6 +228,31 @@ class LayerEdge:
                 
                 return self.print_message(address, proxy, Fore.RED, f"Try Confirm Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
             
+    async def daily_checkin(self, account: str, address: str, proxy=None, retries=5):
+        url = "https://referralapi.layeredge.io/api/light-node/claim-node-points"
+        data = json.dumps(self.generate_checkin_payload(account, address))
+        headers = {
+            **self.headers,
+            "Content-Length": str(len(data)),
+            "Content-Type": "application/json"
+        }
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=120)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        if response.status == 405:
+                            return self.print_message(address, proxy, Fore.YELLOW, "Already Check-In Today")
+                        
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                
+                return self.print_message(address, proxy, Fore.RED, f"Check-In Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
+        
     async def node_status(self, address: str, proxy=None, retries=5):
         url = f"https://referralapi.layeredge.io/api/light-node/node-status/{address}"
         for attempt in range(retries):
@@ -231,7 +271,7 @@ class LayerEdge:
         
     async def start_node(self, account: str, address: str, proxy=None, retries=5):
         url = f"https://referralapi.layeredge.io/api/light-node/node-action/{address}/start"
-        data = json.dumps(self.generate_payload(account, address, "activation"))
+        data = json.dumps(self.generate_node_payload(account, address, "activation"))
         headers = {
             **self.headers,
             "Content-Length": str(len(data)),
@@ -253,7 +293,7 @@ class LayerEdge:
     
     async def stop_node(self, account: str, address: str, proxy=None, retries=5):
         url = f"https://referralapi.layeredge.io/api/light-node/node-action/{address}/stop"
-        data = json.dumps(self.generate_payload(account, address, "deactivation"))
+        data = json.dumps(self.generate_node_payload(account, address, "deactivation"))
         headers = {
             **self.headers,
             "Content-Length": str(len(data)),
@@ -272,7 +312,7 @@ class LayerEdge:
                     continue
                 
                 return self.print_message(address, proxy, Fore.RED, f"Stop Node Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
-        
+            
     async def process_accounts(self, account: str, use_proxy: bool):
         address = self.generate_address(account)
 
@@ -285,9 +325,11 @@ class LayerEdge:
                 proxy = self.rotate_proxy_for_account(address) if use_proxy else None
                 continue
 
-            self.print_message(address, proxy, Fore.WHITE, 
-                f"Earning {user['nodePoints']} PTS"
-            )
+            self.print_message(address, proxy, Fore.WHITE, f"Earning {user['nodePoints']} PTS")
+
+            check_in = await self.daily_checkin(account, address, proxy)
+            if check_in and check_in.get("message") == "node points claimed successfully":
+                self.print_message(address, proxy, Fore.GREEN, "Check-In Success")
             
             reconnect_time = float('inf')
 
