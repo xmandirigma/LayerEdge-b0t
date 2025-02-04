@@ -170,7 +170,7 @@ class LayerEdge:
             print(
                 f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
                 f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                f"{Fore.BLUE + Style.BRIGHT}All Accounts Have Been Processed Successfully{Style.RESET_ALL}",
+                f"{Fore.BLUE + Style.BRIGHT}All Accounts Have Been Processed Successfully. Wait For Next Cycle...{Style.RESET_ALL}",
                 end="\r",
                 flush=True
             )
