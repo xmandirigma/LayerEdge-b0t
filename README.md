@@ -12,7 +12,7 @@ Layer Edge BOT
   - Auto Run Without Proxy - Choose 3
   - Auto Claim Daily Check-In
   - Auto Connect and Reconnect Node
-  - Multi Accounts
+  - Multi Accounts With Threads
 
 ## Requiremnets
 

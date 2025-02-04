@@ -187,6 +187,8 @@ class LayerEdge:
 
     async def user_data(self, address: str, proxy=None, retries=5):
         url = f"https://referralapi.layeredge.io/api/referral/wallet-details/{address}"
+
+        await asyncio.sleep(3)
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
@@ -214,6 +216,8 @@ class LayerEdge:
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
+
+        await asyncio.sleep(3)
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
@@ -236,6 +240,8 @@ class LayerEdge:
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
+
+        await asyncio.sleep(3)
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
@@ -255,6 +261,8 @@ class LayerEdge:
         
     async def node_status(self, address: str, proxy=None, retries=5):
         url = f"https://referralapi.layeredge.io/api/light-node/node-status/{address}"
+
+        await asyncio.sleep(3)
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
@@ -277,6 +285,8 @@ class LayerEdge:
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
+
+        await asyncio.sleep(3)
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
@@ -299,6 +309,8 @@ class LayerEdge:
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
+
+        await asyncio.sleep(3)
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
@@ -312,26 +324,35 @@ class LayerEdge:
                     continue
                 
                 return self.print_message(address, proxy, Fore.RED, f"Stop Node Failed: {Fore.YELLOW+Style.BRIGHT}{str(e)}")
-            
-    async def process_accounts(self, account: str, use_proxy: bool):
-        address = self.generate_address(account)
+        
+    async def process_user_earning(self, address: str, use_proxy: bool):
+        while True:
+            await asyncio.sleep(15 * 60)
 
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
+            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
 
-        user = None
-        while user is None:
+            balance = "N/A"
             user = await self.user_data(address, proxy)
-            if not user:
-                proxy = self.rotate_proxy_for_account(address) if use_proxy else None
-                continue
+            if user:
+                balance = user.get("nodePoints")
 
-            self.print_message(address, proxy, Fore.WHITE, f"Earning {user['nodePoints']} PTS")
+            self.print_message(address, proxy, Fore.WHITE, f"Earning {balance} PTS")
+        
+    async def process_claim_checkin(self, account: str, address: str, use_proxy: bool):
+        while True:
+            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
 
             check_in = await self.daily_checkin(account, address, proxy)
             if check_in and check_in.get("message") == "node points claimed successfully":
                 self.print_message(address, proxy, Fore.GREEN, "Check-In Success")
-            
-            reconnect_time = float('inf')
+
+            await asyncio.sleep(12 * 60 * 60)
+        
+    async def process_perform_node(self, account: str, address: str, use_proxy: bool):
+        while True:
+            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
+
+            reconnect_time = 10 * 60
 
             node = await self.node_status(address, proxy)
             if node and node.get("message") == "node status":
@@ -387,7 +408,25 @@ class LayerEdge:
                             f"{Fore.WHITE + Style.BRIGHT}{self.format_seconds(reconnect_time)}{Style.RESET_ALL}"
                         )
 
-                return reconnect_time
+            await asyncio.sleep(reconnect_time)
+            
+    async def process_accounts(self, account: str, address: str, use_proxy: bool):
+        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
+        user = None
+        while user is None:
+            user = await self.user_data(address, proxy)
+            if not user:
+                proxy = self.rotate_proxy_for_account(address) if use_proxy else None
+                continue
+
+            balance = user.get("nodePoints", "N/A")
+            self.print_message(address, proxy, Fore.WHITE, f"Earning {balance} PTS")
+
+            tasks = []
+            tasks.append(self.process_user_earning(address, use_proxy))
+            tasks.append(self.process_claim_checkin(account, address, use_proxy))
+            tasks.append(self.process_perform_node(account, address, use_proxy))
+            await asyncio.gather(*tasks)
 
     async def main(self):
         try:
@@ -400,46 +439,29 @@ class LayerEdge:
             if use_proxy_choice in [1, 2]:
                 use_proxy = True
 
+            
+            self.clear_terminal()
+            self.welcome()
+            self.log(
+                f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
+            )
+
+            if use_proxy:
+                await self.load_proxies(use_proxy_choice)
+
+            self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
+
             while True:
-                self.clear_terminal()
-                self.welcome()
-                self.log(
-                    f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
-                )
-
-                if use_proxy:
-                    await self.load_proxies(use_proxy_choice)
-
-                reconnect_times = []
-                for idx, account in enumerate(accounts, start=1):
-                    separator = "=" * 25
+                tasks = []
+                for account in accounts:
                     if account:
-                        self.log(
-                            f"{Fore.CYAN + Style.BRIGHT}{separator}[{Style.RESET_ALL}"
-                            f"{Fore.BLUE + Style.BRIGHT} {idx} {Style.RESET_ALL}"
-                            f"{Fore.WHITE + Style.BRIGHT}of{Style.RESET_ALL}"
-                            f"{Fore.GREEN + Style.BRIGHT} {len(accounts)} {Style.RESET_ALL}"
-                            f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
-                        )
-                        account = await self.process_accounts(account, use_proxy)
-                        reconnect_times.append(account)
+                        address = self.generate_address(account)
+                        tasks.append(self.process_accounts(account, address, use_proxy))
 
-                self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*65)
-                delay = min(reconnect_times) if reconnect_times else 86400
-                while delay > 0:
-                    formatted_time = self.format_seconds(delay)
-                    print(
-                        f"{Fore.CYAN+Style.BRIGHT}[ Wait for{Style.RESET_ALL}"
-                        f"{Fore.WHITE+Style.BRIGHT} {formatted_time} {Style.RESET_ALL}"
-                        f"{Fore.CYAN+Style.BRIGHT}... ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE+Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.YELLOW+Style.BRIGHT}All Accounts Have Been Processed...{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
-                    )
-                    await asyncio.sleep(1)
-                    delay -= 1
+                
+                await asyncio.gather(*tasks)
+                await asyncio.sleep(10)
 
         except FileNotFoundError:
             self.log(f"{Fore.RED}File 'accounts.txt' Not Found.{Style.RESET_ALL}")
