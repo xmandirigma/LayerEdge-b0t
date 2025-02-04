@@ -163,6 +163,17 @@ class LayerEdge:
             f"{color + Style.BRIGHT} {message} {Style.RESET_ALL}"
             f"{Fore.CYAN + Style.BRIGHT}]{Style.RESET_ALL}"
         )
+    
+    async def print_clear_message(self):
+        while True:
+            await asyncio.sleep(60)
+            print(
+                f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                f"{Fore.BLUE + Style.BRIGHT}All Accounts Have Been Processed Successfully{Style.RESET_ALL}",
+                end="\r",
+                flush=True
+            )
 
     def print_question(self):
         while True:
@@ -327,7 +338,7 @@ class LayerEdge:
         
     async def process_user_earning(self, address: str, use_proxy: bool):
         while True:
-            await asyncio.sleep(15 * 60)
+            await asyncio.sleep(24 * 60 * 60)
 
             proxy = self.get_next_proxy_for_account(address) if use_proxy else None
 
@@ -459,7 +470,7 @@ class LayerEdge:
                         address = self.generate_address(account)
                         tasks.append(self.process_accounts(account, address, use_proxy))
 
-                
+                tasks.append(self.print_clear_message())
                 await asyncio.gather(*tasks)
                 await asyncio.sleep(10)
 
