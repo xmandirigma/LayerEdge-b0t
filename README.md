@@ -25,7 +25,7 @@ Layer Edge B0T
    git clone https://github.com/xmandirigma/LayerEdge-b0t.git
    ```
    ```bash
-   cd LayerEdge-BOT
+   cd LayerEdge-b0t
    ```
 
 2. **Install Requirements:**
