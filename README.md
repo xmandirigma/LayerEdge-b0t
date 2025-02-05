@@ -1,8 +1,8 @@
 # Layer Edge BOT
-Layer Edge BOT
+Layer Edge B0T
 
 - Register Here : [Layer Edge](https://dashboard.layeredge.io/)
-- Use Code : tHc67a1g
+- Use Code : euBhx2oF
 
 ## Features
 
@@ -22,7 +22,7 @@ Layer Edge BOT
 
 1. **Clone The Repositories:**
    ```bash
-   git clone https://github.com/vonssy/LayerEdge-BOT.git
+   git clone https://github.com/xmandirigma/LayerEdge-b0t.git
    ```
    ```bash
    cd LayerEdge-BOT
@@ -55,10 +55,8 @@ python bot.py #or python3 bot.py
 
 ## Buy Me a Coffee
 
-- **EVM:** 0xe3c9ef9a39e9eb0582e5b147026cae524338521a
-- **TON:** UQBEFv58DC4FUrGqinBB5PAQS7TzXSm5c1Fn6nkiet8kmehB
-- **SOL:** E1xkaJYmAFEj28NPHKhjbf7GcvfdjKdvXju8d8AeSunf
-- **SUI:** 0xa03726ecbbe00b31df6a61d7a59d02a7eedc39fe269532ceab97852a04cf3347
+- **EVM:** 0xA763241fdE71B7c1551bB1deD63aC7dFB7709728
+- **SOL:** G2UVfv83Y4AHUScWekvV9Qa3sd5qgVBhu7hXyBPVgWGz
 
 Thank you for visiting this repository, don't forget to contribute in the form of follows and stars.
 If you have questions, find an issue, or have suggestions for improvement, feel free to contact me or open an *issue* in this GitHub repository.
